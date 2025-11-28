@@ -57,7 +57,7 @@ jobs:
         run: "cd llamasrc && cmake --build build --config Release --parallel 2"
 
       - name: "Prepackage"
-        run: "mkdir ship && cp llamasrc/build/bin/*.dll ship/ && cp llamasrc/build/bin/*.exe ship/ && cp build/bin/*.dll ship/ && cp /usr/i686-w64-mingw32/bin/libgcc_s_dw2-1.dll ship/ && cp /usr/i686-w64-mingw32/bin/libstdc++-6.dll ship/ && cp /usr/i686-w64-mingw32/bin/libwinpthread-1.dll ship/ && cp /usr/i686-w64-mingw32/bin/libgomp-1.dll ship/"
+        run: "mkdir ship && cp llamasrc/build/bin/*.exe ship/ && cp /usr/i686-w64-mingw32/bin/libgcc_s_dw2-1.dll ship/ && cp /usr/i686-w64-mingw32/bin/libstdc++-6.dll ship/ && cp /usr/i686-w64-mingw32/bin/libwinpthread-1.dll ship/ && cp /usr/i686-w64-mingw32/bin/libgomp-1.dll ship/"
 
       - name: "Publish artifact"
         uses: actions/upload-artifact@v4
