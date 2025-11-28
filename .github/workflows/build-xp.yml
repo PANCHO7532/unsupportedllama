@@ -41,6 +41,9 @@ jobs:
           ref: "v0.19.0"
           fetch-depth: 1
 
+      - name: "Patch httplib repo"
+        run: "cd httplibsrc && git apply ../patches/cpp-httplib/0190xp.patch"
+
       - name: "Generate and replace httplib sources"
         run: "cd httplibsrc && python3 split.py && cp outhttplib.cc ../llamasrc/vendor/cpp-httplib/httplib.cpp && cp outhttplib.h ../llamasrc/vendor/cpp-httplib/httplib.h"
 
