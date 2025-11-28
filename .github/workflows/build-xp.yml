@@ -10,7 +10,67 @@ jobs:
     name: 32-bit UCRT build
     runs-on: ubuntu-latest
     outputs:
-      artifact_name: love2dxp-x86
+      artifact_name: llamacpp-wxp-x86
+    container: 
+      image: i386/alpine:3.22
+      volumes:
+        - /tmp:/__e/node20_alpine
+    steps:
+      # Fix checkout and upload-artifact to use local alternatives as the shipped node version is for another architecture
+      - name: Fix checkout and upload-artifact
+        run: apk update && apk add nodejs && mkdir -p /__e/node20_alpine/bin && ln -s $(which node) /__e/node20_alpine/bin/node && ln -s $(which npm) /__e/node20_alpine/bin/npm && ln -s $(which npx) /__e/node20_alpine/bin/npx
+
+      - name: Setup
+        run: "apk update && apk add python3 git cmake make gcc g++ musl-dev linux-headers mingw-w64-binutils mingw-w64-crt mingw-w64-gcc mingw-w64-gcc-ccache mingw-w64-headers mingw-w64-headers-doc mingw-w64-winpthreads mingw-w64-winpthreads-doc"
+      
+      - name: Checkout this repository code
+        uses: actions/checkout@v4
+
+      - name: Checkout llama.cpp source code
+        uses: actions/checkout@v4
+        with:
+          repository: "ggml-org/llama.cpp"
+          path: "llamasrc"
+          fetch-depth: 1
+
+      - name: "Checkout httplib source code"
+        uses: actions/checkout@v4
+        with:
+          repository: "yhirose/cpp-httplib"
+          path: "httplibsrc"
+          ref: "v0.19.0"
+          fetch-depth: 1
+
+      - name: "Patch httplib repo"
+        run: "cd httplibsrc && git apply ../patches/cpp-httplib/0190xp.patch"
+      
+      - name: "Patch llama.cpp repo"
+        run: "cd llamasrc && git apply ../patches/llamacpp/cmake-httplib.patch"
+
+      - name: "Generate and replace httplib sources"
+        run: "cd httplibsrc && python3 split.py && cp outhttplib.cc ../llamasrc/vendor/cpp-httplib/httplib.cpp && cp outhttplib.h ../llamasrc/vendor/cpp-httplib/httplib.h"
+
+      - name: Prepare build
+        run: cd llamasrc && cmake -B build -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS} -D_WIN32_WINNT=0x0501 -DWINVER=0x0501" -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} -D_WIN32_WINNT=0x0501 -DWINVER=0x0501" -DBUILD_SHARED_LIBS=OFF -DGGML_STATIC=ON -DLLAMA_BUILD_COMMON=ON -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_SERVER=ON -DLLAMA_BUILD_TOOLS=ON -DLLAMA_CURL=OFF -DLLAMA_HTTPLIB=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="../mingw32.cmake"
+
+      - name: "Build llama.cpp"
+        run: "cd llamasrc && cmake --build build --config Release --parallel 2"
+
+      - name: "Prepackage"
+        run: "mkdir ship && cp llamasrc/build/bin/*.exe ship/ && cp /usr/i686-w64-mingw32/bin/libgcc_s_dw2-1.dll ship/ && cp /usr/i686-w64-mingw32/bin/libstdc++-6.dll ship/ && cp /usr/i686-w64-mingw32/bin/libwinpthread-1.dll ship/ && cp /usr/i686-w64-mingw32/bin/libgomp-1.dll ship/"
+
+      - name: "Publish artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          path: ship
+          name: llamacpp-wxp-x86
+          retention-days: 1
+          compression-level: 9
+  build32nosse:
+    name: 32-bit no SSE UCRT build
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: llamacpp-wxp-no-sse-x86
     container: 
       image: i386/alpine:3.22
       volumes:
@@ -63,6 +123,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: ship
-          name: llamacpp-wxp-x86
+          name: llamacpp-wxp-no-sse-x86
           retention-days: 1
           compression-level: 9
